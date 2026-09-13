@@ -6,6 +6,13 @@ Femora Atlas is an educational web app — a conceptual counterpart to male-refe
 
 **Not for medical or diagnostic use.**
 
+## Live demo
+
+[https://zer01dollars.github.io/female-body-atlas/](https://zer01dollars.github.io/female-body-atlas/)
+
+![Femora Atlas — interactive 3D female anatomy explorer](docs/screenshot.png)
+
+
 ## Features
 
 - Orbit, zoom, and pan with damped `OrbitControls`
