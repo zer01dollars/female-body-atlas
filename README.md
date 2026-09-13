@@ -1,8 +1,6 @@
 # Femora Atlas
 
-Interactive 3D explorer of **stylized female anatomy**. Orbit the figure, toggle organ systems, isolate a structure, pull the body into an exploded inventory, and adjust live **body attribute** morph sliders.
-
-Femora Atlas is an educational web app — a conceptual counterpart to male-reference anatomy viewers such as [Human Atlas](https://github.com/ashemag/human-atlas), built independently with procedural meshes rather than BodyParts3D data.
+Interactive 3D explorer of **female anatomy** built on the HuBMAP *3D Reference Organ Set for Female v1.5*. Orbit a full-bleed viewport, toggle organ systems, isolate a structure, explode the inventory, search 800+ named meshes, and adjust best-effort **body attribute** morph sliders.
 
 **Not for medical or diagnostic use.**
 
@@ -10,29 +8,18 @@ Femora Atlas is an educational web app — a conceptual counterpart to male-refe
 
 [https://zer01dollars.github.io/female-body-atlas/](https://zer01dollars.github.io/female-body-atlas/)
 
-![Femora Atlas — interactive 3D female anatomy explorer](docs/screenshot.png)
-
-
 ## Features
 
-- Orbit, zoom, and pan with damped `OrbitControls`
-- Click / tap to select (drag to orbit does not select)
-- Highlight + floating name on the selected structure
-- System checkboxes: skeletal, muscular, circulatory, respiratory, digestive, urinary, reproductive, nervous
+- Full-window WebGL canvas — floating overlay chrome (top bar, collapsible left drawer, detail sheet) does not shrink the viewport
+- Camera auto-fits the whole female reference on load
+- Orbit / zoom / pan with damped controls; click to select (drag does not select)
+- 888 HuBMAP meshes mapped to systems: skeletal, muscular, circulatory, respiratory, digestive, urinary, reproductive, nervous, lymphatic, integumentary
 - Presets: **All**, **Skeleton**, **Organs**, **Reproductive**
-- Search by structure name, id, or system
-- Isolate mode fades everything except the selection
-- Explode toggle offsets parts outward from the body center
-- **Body attributes** panel with live range sliders that morph the figure:
-  - Hair color (stylized scalp mesh pigment)
-  - Musculature (lean ↔ muscular bulk on muscle groups)
-  - Chest size (mammary / soft-tissue scale)
-  - Butt size (gluteal soft-tissue scale)
-  - Height (overall Y stature, feet stay grounded)
-  - Arm length (upper-limb chain stretch from the shoulder)
-- Detail panel on desktop; bottom sheet on small screens
-- Optional translucent female silhouette for proportion context (also follows morphs)
-- Educational disclaimer in the footer
+- Search by structure name, mesh id, system, or FMA id (where enriched)
+- Isolate + explode (radial offset from body centroid)
+- Body attributes (best-effort on matching nodes): musculature, chest/mammary scale, height; hair / butt / arm sliders appear only if meshes exist
+- Studio lighting + physical materials
+- Dark educational UI
 
 ## Stack
 
@@ -45,23 +32,31 @@ npm install
 npm run dev
 ```
 
-Then open the URL Vite prints (usually `http://localhost:5173`).
-
 ```bash
 npm run build    # production bundle in dist/
 npm run preview  # serve the built dist
 ```
 
-## Deploy
-
-The app is a static site. `vercel.json` rewrites all routes to `index.html`. Point any static host at `dist/` after `npm run build`.
+GitHub Pages base path is `/female-body-atlas/` (`vite.config.ts`).
 
 ## Models
 
-All geometry is **procedural and stylized** — capsules, ellipsoids, and simple solids arranged in adult female proportions (narrower shoulders, wider pelvis, mammary tissue, internal reproductive organs). Morph sliders are anatomical customization for proportion study, not a clinical or cosmetic tool. The figure is not a scan, not BodyParts3D, and not a complete anatomical atlas.
+- **Shipped:** `public/models/female-atlas.glb` — optimized (simplify + Meshopt), ~32 MB, browser-friendly
+- **Source (not in git):** HuBMAP united female GLB (~202 MB). See [ATTRIBUTION.md](./ATTRIBUTION.md).
+- Official BodyParts3D 4.0 geometry is adult **male** only; this project uses HuBMAP female reference meshes instead, with BodyParts3D FMA naming for search enrichment where labels match.
 
-See [ATTRIBUTION.md](./ATTRIBUTION.md).
+### Re-optimize from the raw GLB
+
+```bash
+npx gltf-transform optimize \
+  .raw-models/3d-vh-f-united.glb \
+  public/models/female-atlas.glb \
+  --compress meshopt --meshopt-level high \
+  --flatten false --join false --instance false \
+  --simplify true --simplify-ratio 0.15 --simplify-error 0.001 \
+  --texture-compress false --palette false
+```
 
 ## License
 
-[MIT](./LICENSE) for application code.
+[MIT](./LICENSE) for application code. Geometry remains [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) HuBMAP — see [ATTRIBUTION.md](./ATTRIBUTION.md).

@@ -8,7 +8,7 @@ export function DetailPanel() {
 
   return (
     <aside
-      className={`detail ${part ? 'detail-open' : ''}`}
+      className={`detail overlay-panel ${part ? 'detail-open' : ''}`}
       aria-live="polite"
     >
       {part ? (
@@ -34,7 +34,10 @@ export function DetailPanel() {
             </button>
           </div>
           <h2>{part.name}</h2>
-          <p className="detail-id">{part.id}</p>
+          <p className="detail-id">
+            {part.id}
+            {part.fmaId ? ` · ${part.fmaId}` : ''}
+          </p>
           <p className="detail-copy">{part.description}</p>
           <p className="detail-context">{SYSTEM_META[part.system].blurb}</p>
           <button
@@ -49,8 +52,8 @@ export function DetailPanel() {
         <div className="detail-empty">
           <h2>Inspect a structure</h2>
           <p>
-            Click or tap a part of the figure. Drag to orbit. Use systems and
-            presets to peel the body into layers.
+            Click a mesh to select. Drag to orbit. Use systems and presets to
+            reveal layers of the HuBMAP female reference.
           </p>
         </div>
       )}

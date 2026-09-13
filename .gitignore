@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Raw HuBMAP GLB (~202MB) — keep local, never commit
+.raw-models/
+public/models/3d-vh-f-united.glb
+public/models/3d-vh-f-united.glb.*
+*.box-store-snap-*

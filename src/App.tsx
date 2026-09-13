@@ -9,12 +9,10 @@ export default function App() {
   return (
     <AtlasProvider>
       <div className="app-shell">
+        <Scene />
         <Header />
-        <main className="app-main">
-          <ControlDock />
-          <Scene />
-          <DetailPanel />
-        </main>
+        <ControlDock />
+        <DetailPanel />
         <Disclaimer />
       </div>
     </AtlasProvider>

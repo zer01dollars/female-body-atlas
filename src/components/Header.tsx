@@ -1,15 +1,26 @@
 import { SearchBox } from './SearchBox'
+import { useAtlas } from '../state/AtlasProvider'
 
 export function Header() {
+  const { drawerOpen, setDrawerOpen } = useAtlas()
   return (
-    <header className="app-header">
+    <header className="app-header overlay-panel">
+      <button
+        type="button"
+        className="icon-btn drawer-toggle"
+        aria-label={drawerOpen ? 'Hide controls' : 'Show controls'}
+        aria-expanded={drawerOpen}
+        onClick={() => setDrawerOpen(!drawerOpen)}
+      >
+        ☰
+      </button>
       <div className="brand">
         <svg
           className="brand-mark"
           viewBox="0 0 32 32"
           aria-hidden="true"
-          width="28"
-          height="28"
+          width="26"
+          height="26"
         >
           <circle cx="16" cy="16" r="14.5" fill="none" stroke="currentColor" strokeWidth="1.2" />
           <path
@@ -20,7 +31,7 @@ export function Header() {
         </svg>
         <div>
           <h1>Femora Atlas</h1>
-          <p>Interactive 3D female anatomy</p>
+          <p>HuBMAP female 3D reference</p>
         </div>
       </div>
       <SearchBox />

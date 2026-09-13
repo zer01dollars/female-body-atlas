@@ -7,6 +7,7 @@ export const SYSTEMS = [
   'urinary',
   'reproductive',
   'nervous',
+  'lymphatic',
   'integumentary',
 ] as const
 
@@ -19,88 +20,65 @@ export const SYSTEM_META: Record<
   skeletal: {
     label: 'Skeletal',
     color: '#e6d3b4',
-    blurb: 'Bones and joints that frame stature, gait, and the wider female pelvis.',
+    blurb: 'Pelvis, vertebrae, and knee complex from the HuBMAP female reference skeleton.',
   },
   muscular: {
     label: 'Muscular',
     color: '#b24a5a',
-    blurb: 'Major muscle groups that move the limbs, stabilize the trunk, and shape the hip.',
+    blurb: 'Available muscle meshes in the female reference (ocular muscles and rectus femoris).',
   },
   circulatory: {
     label: 'Circulatory',
     color: '#c0392b',
-    blurb: 'Heart and great vessels that distribute blood through the thorax and pelvis.',
+    blurb: 'Heart chambers, valves, and organ-associated vasculature.',
   },
   respiratory: {
     label: 'Respiratory',
     color: '#e8a5a0',
-    blurb: 'Airways and lungs that exchange gases within the ribcage.',
+    blurb: 'Lungs, larynx, and tracheobronchial tree.',
   },
   digestive: {
     label: 'Digestive',
     color: '#c9844a',
-    blurb: 'Organs that process food from esophagus to intestine.',
+    blurb: 'Liver, pancreas, biliary tree, intestines, and related ducts.',
   },
   urinary: {
     label: 'Urinary',
     color: '#d4b45a',
-    blurb: 'Kidneys, ureters, and bladder that filter blood and store urine.',
+    blurb: 'Kidneys, ureters, and urinary bladder.',
   },
   reproductive: {
     label: 'Reproductive',
     color: '#c4788a',
-    blurb: 'Internal female reproductive organs and mammary glands, shown anatomically.',
+    blurb: 'Uterus, ovaries, fallopian tubes, vagina, placenta, and mammary gland.',
   },
   nervous: {
     label: 'Nervous',
     color: '#b8a8d0',
-    blurb: 'Brain and spinal cord — the central axis of sensation and control.',
+    blurb: 'Spinal cord, eyes, and Allen Brain Atlas regions.',
+  },
+  lymphatic: {
+    label: 'Lymphatic',
+    color: '#7a9e8a',
+    blurb: 'Spleen, thymus, and lymph-node microanatomy.',
   },
   integumentary: {
     label: 'Integumentary',
-    color: '#8a6a4a',
-    blurb: 'Hair and surface coverings. Color here is a melanin-range schematic, not a dermatology atlas.',
+    color: '#c4a882',
+    blurb: 'Body skin surface. Toggle off or keep translucent to reveal organs.',
   },
 }
 
 export const PRESETS = ['all', 'skeleton', 'organs', 'reproductive'] as const
 export type PresetId = (typeof PRESETS)[number]
 
-export type Vec3 = [number, number, number]
-
-export type PrimitiveKind =
-  | 'sphere'
-  | 'capsule'
-  | 'box'
-  | 'cylinder'
-  | 'torus'
-  | 'cone'
-
-export type Primitive = {
-  kind: PrimitiveKind
-  args: number[]
-  position?: Vec3
-  rotation?: Vec3
-  scale?: Vec3
-}
-
 export type AnatomyPart = {
   id: string
   name: string
   system: AnatomySystem
   description: string
-  position: Vec3
-  rotation?: Vec3
-  primitives: Primitive[]
-  color: string
-  opacity?: number
+  fmaId?: string | null
 }
 
-export type {
-  MorphAttributes,
-} from './morphs'
-
-export {
-  DEFAULT_MORPHS,
-  MORPH_META,
-} from './morphs'
+export type { MorphAttributes } from './morphs'
+export { DEFAULT_MORPHS, MORPH_META } from './morphs'

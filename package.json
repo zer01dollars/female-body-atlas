@@ -16,6 +16,7 @@
     "three": "^0.186.0"
   },
   "devDependencies": {
+    "@gltf-transform/cli": "^4.5.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
@@ -27,11 +28,11 @@
     "typescript": "~6.0.2",
     "vite": "^8.3.0"
   },
-  "description": "Femora Atlas \u2014 interactive 3D female anatomy explorer",
+  "description": "Femora Atlas — interactive 3D female anatomy explorer",
   "author": "Zer01io",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Zer01io/female-body-atlas.git"
+    "url": "https://github.com/zer01dollars/female-body-atlas.git"
   }
 }

@@ -19,15 +19,31 @@ export function ControlDock() {
     setExplode,
     isolate,
     setIsolate,
-    showSilhouette,
-    setShowSilhouette,
     selectedId,
+    drawerOpen,
+    setDrawerOpen,
   } = useAtlas()
 
   return (
-    <aside className="dock" aria-label="Anatomy controls">
+    <aside
+      className={`dock overlay-panel ${drawerOpen ? 'dock-open' : 'dock-closed'}`}
+      aria-label="Anatomy controls"
+      aria-hidden={!drawerOpen}
+    >
+      <div className="dock-head">
+        <h2>Layers</h2>
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label="Close controls"
+          onClick={() => setDrawerOpen(false)}
+        >
+          ×
+        </button>
+      </div>
+
       <section>
-        <h2>Presets</h2>
+        <h3>Presets</h3>
         <div className="chip-row">
           {PRESETS.map((id) => (
             <button
@@ -43,7 +59,7 @@ export function ControlDock() {
       </section>
 
       <section>
-        <h2>Systems</h2>
+        <h3>Systems</h3>
         <ul className="system-list">
           {SYSTEMS.map((system) => (
             <li key={system}>
@@ -83,14 +99,6 @@ export function ControlDock() {
             disabled={!selectedId && !isolate}
           />
           <span>Isolate selection</span>
-        </label>
-        <label className="toggle">
-          <input
-            type="checkbox"
-            checked={showSilhouette}
-            onChange={(e) => setShowSilhouette(e.target.checked)}
-          />
-          <span>Body silhouette</span>
         </label>
       </section>
     </aside>

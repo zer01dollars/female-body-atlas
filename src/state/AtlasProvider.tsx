@@ -18,13 +18,13 @@ import {
   type PresetId,
 } from '../types'
 
-const ALL_VISIBLE = Object.fromEntries(SYSTEMS.map((s) => [s, true])) as Record<
-  AnatomySystem,
-  boolean
->
+const ALL_VISIBLE = Object.fromEntries(
+  SYSTEMS.map((s) => [s, s !== 'integumentary']),
+) as Record<AnatomySystem, boolean>
+// Skin off by default so organs are visible; user can enable translucent skin.
 
 const PRESET_SYSTEMS: Record<PresetId, AnatomySystem[]> = {
-  all: [...SYSTEMS],
+  all: SYSTEMS.filter((s) => s !== 'integumentary'),
   skeleton: ['skeletal'],
   organs: [
     'circulatory',
@@ -33,8 +33,17 @@ const PRESET_SYSTEMS: Record<PresetId, AnatomySystem[]> = {
     'urinary',
     'reproductive',
     'nervous',
+    'lymphatic',
   ],
   reproductive: ['reproductive', 'urinary', 'skeletal'],
+}
+
+export type AvailableMorphs = {
+  hair: boolean
+  muscle: boolean
+  chest: boolean
+  butt: boolean
+  arm: boolean
 }
 
 export type AtlasContextValue = {
@@ -43,20 +52,22 @@ export type AtlasContextValue = {
   visibleSystems: Record<AnatomySystem, boolean>
   explode: boolean
   isolate: boolean
-  showSilhouette: boolean
+  drawerOpen: boolean
   search: string
   preset: PresetId
   morphs: MorphAttributes
+  availableMorphs: AvailableMorphs
   select: (id: string | null) => void
   hover: (id: string | null) => void
   toggleSystem: (system: AnatomySystem) => void
   applyPreset: (preset: PresetId) => void
   setExplode: (value: boolean) => void
   setIsolate: (value: boolean) => void
-  setShowSilhouette: (value: boolean) => void
+  setDrawerOpen: (value: boolean) => void
   setSearch: (query: string) => void
   setMorph: <K extends keyof MorphAttributes>(key: K, value: MorphAttributes[K]) => void
   resetMorphs: () => void
+  setAvailableMorphs: (flags: AvailableMorphs) => void
   markPointerDown: (x: number, y: number) => void
   markPointerMove: (x: number, y: number) => void
   wasTap: () => boolean
@@ -72,10 +83,17 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
     useState<Record<AnatomySystem, boolean>>(ALL_VISIBLE)
   const [explode, setExplode] = useState(false)
   const [isolate, setIsolate] = useState(false)
-  const [showSilhouette, setShowSilhouette] = useState(true)
+  const [drawerOpen, setDrawerOpen] = useState(true)
   const [search, setSearch] = useState('')
   const [preset, setPreset] = useState<PresetId>('all')
   const [morphs, setMorphs] = useState<MorphAttributes>(DEFAULT_MORPHS)
+  const [availableMorphs, setAvailableMorphs] = useState<AvailableMorphs>({
+    hair: false,
+    muscle: true,
+    chest: true,
+    butt: false,
+    arm: false,
+  })
   const pointer = useRef({ x: 0, y: 0, dragged: false })
 
   const select = useCallback((id: string | null) => {
@@ -101,7 +119,15 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
     )
     setPreset(next)
     if (next === 'reproductive') {
-      setSelectedId('uterus')
+      const hit =
+        ANATOMY.find((p) => p.id === 'VH_F_uterus') ||
+        ANATOMY.find(
+          (p) =>
+            p.system === 'reproductive' &&
+            /uterus/i.test(p.id) &&
+            !/ligament|vasculature|blood/i.test(p.id),
+        )
+      if (hit) setSelectedId(hit.id)
     }
   }, [])
 
@@ -135,7 +161,8 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
       (p) =>
         p.name.toLowerCase().includes(q) ||
         p.id.toLowerCase().includes(q) ||
-        p.system.toLowerCase().includes(q),
+        p.system.toLowerCase().includes(q) ||
+        (p.fmaId && p.fmaId.toLowerCase().includes(q)),
     )
   }, [search])
 
@@ -146,20 +173,22 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
       visibleSystems,
       explode,
       isolate,
-      showSilhouette,
+      drawerOpen,
       search,
       preset,
       morphs,
+      availableMorphs,
       select,
       hover,
       toggleSystem,
       applyPreset,
       setExplode,
       setIsolate,
-      setShowSilhouette,
+      setDrawerOpen,
       setSearch,
       setMorph,
       resetMorphs,
+      setAvailableMorphs,
       markPointerDown,
       markPointerMove,
       wasTap,
@@ -171,10 +200,11 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
       visibleSystems,
       explode,
       isolate,
-      showSilhouette,
+      drawerOpen,
       search,
       preset,
       morphs,
+      availableMorphs,
       select,
       hover,
       toggleSystem,

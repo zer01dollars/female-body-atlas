@@ -1,17 +1,17 @@
-/** Morph attribute helpers — educational proportion customization. */
+/** Morph attribute helpers — best-effort scales/material tweaks on HuBMAP meshes. */
 
 export type MorphAttributes = {
-  /** 0–1 continuous hair pigment (dark → warm brown → auburn → blonde → light). */
+  /** 0–1 hair pigment — only if a hair mesh exists. */
   hairColor: number
   /** 0 lean ↔ 1 more developed musculature (bulk on muscle meshes). */
   musculature: number
   /** Soft-tissue chest / mammary scale. */
   chestSize: number
-  /** Gluteal soft-tissue scale. */
+  /** Gluteal / lower soft-tissue scale (best-effort). */
   buttSize: number
-  /** Overall stature (Y scale); feet stay grounded. */
+  /** Overall stature (Y scale). */
   height: number
-  /** Upper-limb length along the arm axis. */
+  /** Upper-limb length stretch (best-effort if arm nodes exist). */
   armLength: number
 }
 
@@ -105,7 +105,6 @@ function rgbToHex(r: number, g: number, b: number): string {
   return `#${to(r)}${to(g)}${to(b)}`
 }
 
-/** Map hairColor slider 0–1 to a tasteful natural hair hex. */
 export function hairColorFromMorph(t: number): string {
   const x = Math.min(1, Math.max(0, t))
   let i = 0
@@ -118,118 +117,81 @@ export function hairColorFromMorph(t: number): string {
   return rgbToHex(ar + (br - ar) * u, ag + (bg - ag) * u, ab + (bb - ab) * u)
 }
 
-export const MUSCLE_BULK_IDS = new Set([
-  'trapezius',
-  'deltoid-left',
-  'deltoid-right',
-  'pectoralis',
-  'biceps-left',
-  'biceps-right',
-  'rectus-abdominis',
-  'obliques',
-  'gluteus-left',
-  'gluteus-right',
-  'quadriceps-left',
-  'quadriceps-right',
-  'hamstrings-left',
-  'hamstrings-right',
-  'calf-left',
-  'calf-right',
-])
+/** Classify a mesh node name into morph target groups. */
+export type MorphGroup = 'hair' | 'muscle' | 'chest' | 'butt' | 'arm' | null
 
-export const CHEST_IDS = new Set(['mammary-left', 'mammary-right'])
-
-export const BUTT_IDS = new Set(['gluteus-left', 'gluteus-right'])
-
-/** Parts whose length stretches with armLength (bones + soft tissue along the limb). */
-export const ARM_LENGTH_IDS = new Set([
-  'humerus-left',
-  'humerus-right',
-  'forearm-left',
-  'forearm-right',
-  'hand-left',
-  'hand-right',
-  'biceps-left',
-  'biceps-right',
-  'deltoid-left',
-  'deltoid-right',
-])
-
-/** Shoulder anchors for left / right arm chains (world units). */
-export const ARM_SHOULDER: Record<'left' | 'right', [number, number, number]> = {
-  left: [1.22, 13.52, 0.02],
-  right: [-1.22, 13.52, 0.02],
-}
-
-export function armSide(id: string): 'left' | 'right' | null {
-  if (id.endsWith('-left')) return 'left'
-  if (id.endsWith('-right')) return 'right'
+export function morphGroupForName(name: string): MorphGroup {
+  const n = name.toLowerCase()
+  if (/hair|scalp|eyebrow/.test(n)) return 'hair'
+  if (
+    /mammary|nipple|areola|lactiferous|fat_[lr]$|fat_l|fat_r|areolar/.test(n)
+  )
+    return 'chest'
+  if (/glute|butt|ischium/.test(n)) return 'butt'
+  if (
+    /muscle|muscular|rectus_femoris|extraocular|pectoral|deltoid|bicep|trapezius|quadriceps|hamstring|gastroc|soleus/.test(
+      n,
+    )
+  )
+    return 'muscle'
+  if (
+    /humerus|radius|ulna|scapula|clavicle|humer|forearm|hand_|wrist|metacarp/.test(
+      n,
+    )
+  )
+    return 'arm'
   return null
 }
 
 export type Vec3Tuple = [number, number, number]
 
-/** Local mesh scale multipliers from morphs (applied on top of primitive.scale). */
-export function morphScaleForPart(
-  id: string,
+export function morphScaleForGroup(
+  group: MorphGroup,
   morphs: MorphAttributes,
 ): Vec3Tuple {
   let sx = 1
   let sy = 1
   let sz = 1
-
-  if (MUSCLE_BULK_IDS.has(id)) {
-    // Lean → muscular: mostly radial bulk, slight length hold
+  if (group === 'muscle') {
     const m = 0.78 + morphs.musculature * 0.52
     sx *= m
     sy *= 0.92 + morphs.musculature * 0.16
     sz *= m
   }
-
-  if (CHEST_IDS.has(id)) {
+  if (group === 'chest') {
     const c = 0.68 + morphs.chestSize * 0.72
     sx *= c
     sy *= 0.75 + morphs.chestSize * 0.55
     sz *= c
   }
-
-  if (BUTT_IDS.has(id)) {
+  if (group === 'butt') {
     const b = 0.7 + morphs.buttSize * 0.7
     sx *= b
     sy *= 0.82 + morphs.buttSize * 0.4
     sz *= b
   }
-
-  if (ARM_LENGTH_IDS.has(id)) {
-    // Stretch along the bone/long axis (capsules are Y-up)
-    const isHand = id.startsWith('hand-')
-    const isDeltoid = id.startsWith('deltoid-')
-    if (isHand) {
-      // Hands keep size; only position shifts via morphPositionForPart
-    } else if (isDeltoid) {
-      sy *= 0.94 + (morphs.armLength - 1) * 0.35
-    } else {
-      sy *= morphs.armLength
-    }
+  if (group === 'arm') {
+    sy *= morphs.armLength
   }
-
   return [sx, sy, sz]
 }
 
-/** Reposition distal arm parts so lengthening keeps the chain attached at the shoulder. */
-export function morphPositionForPart(
-  id: string,
-  base: Vec3Tuple,
-  morphs: MorphAttributes,
-): Vec3Tuple {
-  if (!ARM_LENGTH_IDS.has(id)) return base
-  const side = armSide(id)
-  if (!side) return base
-  const [ax, ay, az] = ARM_SHOULDER[side]
-  const k = morphs.armLength
-  return [
-    ax + (base[0] - ax) * k,
-    ay + (base[1] - ay) * k,
-    az + (base[2] - az) * k,
-  ]
+/** Which morph sliders have matching meshes in the loaded model. */
+export function detectAvailableMorphs(names: string[]): {
+  hair: boolean
+  muscle: boolean
+  chest: boolean
+  butt: boolean
+  arm: boolean
+} {
+  const flags = { hair: false, muscle: false, chest: false, butt: false, arm: false }
+  for (const name of names) {
+    const g = morphGroupForName(name)
+    if (g === 'hair') flags.hair = true
+    if (g === 'muscle') flags.muscle = true
+    if (g === 'chest') flags.chest = true
+    if (g === 'butt') flags.butt = true
+    if (g === 'arm') flags.arm = true
+  }
+  return flags
 }

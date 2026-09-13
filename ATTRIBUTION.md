@@ -4,17 +4,27 @@
 
 Femora Atlas application code is original and released under the MIT License.
 
-All 3D structures in this repository are **procedural, stylized educational meshes** composed in Three.js / React Three Fiber. They are not derived from BodyParts3D, Visible Human, or any other medical imaging dataset. They do not represent a specific person.
+## 3D geometry — HuBMAP Female Reference
+
+Interactive meshes are derived from the **HuBMAP 3D Reference Organ Set for Female v1.5** (united female GLB), optimized for the web (mesh simplification + Meshopt compression).
+
+- Asset: `3d-vh-f-united.glb` → shipped as `public/models/female-atlas.glb`
+- Source CDN: https://cdn.humanatlas.io/digital-objects/ref-organ/united-female/v1.5/assets/3d-vh-f-united.glb
+- DOI: https://doi.org/10.48539/HBM352.BTSQ.586
+- License: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+- Credit: HuBMAP Consortium / Human Reference Atlas
+
+When redistributing the geometry, retain CC BY 4.0 attribution to HuBMAP.
+
+## Naming enrichment — BodyParts3D / FMA
+
+Structure display names and search aliases are enriched, where English labels match, using the BodyParts3D / Anatomography FMA parts list (`isa_parts_list_e.txt`) from [DBCLS](https://dbarchive.biosciencedbc.jp/en/bodyparts3d/desc.html) (CC BY 4.0).
+
+**Important:** Official BodyParts3D 4.0 polygon data describes an adult **male**. This app does **not** redistribute BodyParts3D meshes. Female geometry comes from HuBMAP.
 
 ## Conceptual inspiration
 
-The *idea* of a browser-based anatomy explorer with system layers, search, isolate, and exploded inventory is inspired by open educational viewers, including:
-
-- [Human Atlas](https://github.com/ashemag/human-atlas) by ashemag — a React + Three.js explorer of the BodyParts3D **adult male** reference. Femora Atlas does **not** copy that source code or its geometry. It is an independent female-focused imitation of the interaction pattern.
-
-## Data that is *not* included
-
-[BodyParts3D / Anatomography](https://dbarchive.biosciencedbc.jp/en/bodyparts3d/desc.html) (© The Database Center for Life Science) is licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) and describes an adult male. This repository does not redistribute those meshes. If a future version adds BodyParts3D or another reference dataset, that data’s license and required credit must be preserved separately from the MIT application code.
+Browser anatomy explorers such as [Human Atlas](https://github.com/ashemag/human-atlas) (male BodyParts3D viewer) inspired the interaction pattern (systems, search, isolate, explode). Femora Atlas does **not** copy that source code.
 
 ## Fonts
 
@@ -22,4 +32,4 @@ The *idea* of a browser-based anatomy explorer with system layers, search, isola
 
 ## Disclaimer
 
-Nothing in Femora Atlas is medical advice. Descriptions are short educational summaries for spatial learning only.
+Nothing in Femora Atlas is medical advice. Descriptions are short educational summaries for spatial learning only. Not for clinical or diagnostic use.
