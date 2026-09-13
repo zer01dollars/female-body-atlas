@@ -1,4 +1,8 @@
-import { hairColorFromMorph, MORPH_META, type MorphAttributes } from '../morphs'
+import {
+  hairColorFromMorph,
+  MORPH_META,
+  type MorphAttributes,
+} from '../morphs'
 import { useAtlas } from '../state/AtlasProvider'
 
 const ORDER: (keyof MorphAttributes)[] = [
@@ -9,27 +13,6 @@ const ORDER: (keyof MorphAttributes)[] = [
   'height',
   'armLength',
 ]
-
-function formatValue(key: keyof MorphAttributes, value: number) {
-  if (key === 'hairColor') {
-    if (value < 0.15) return 'Black'
-    if (value < 0.35) return 'Dark brown'
-    if (value < 0.55) return 'Brown'
-    if (value < 0.72) return 'Auburn'
-    if (value < 0.9) return 'Blonde'
-    return 'Light'
-  }
-  if (key === 'height') return `×${value.toFixed(2)}`
-  if (key === 'armLength') return `×${value.toFixed(2)}`
-  if (key === 'musculature') {
-    if (value < 0.33) return 'Lean'
-    if (value < 0.66) return 'Average'
-    return 'Muscular'
-  }
-  if (value < 0.33) return 'Smaller'
-  if (value < 0.66) return 'Average'
-  return 'Fuller'
-}
 
 export function MorphPanel() {
   const { morphs, setMorph, resetMorphs } = useAtlas()
@@ -44,9 +27,8 @@ export function MorphPanel() {
         </button>
       </div>
       <p className="morph-blurb">
-        Live anatomical customization for proportion study — stylized stature,
-        limb length, muscle bulk, and soft-tissue volume. Not a clinical or
-        cosmetic tool.
+        Live anatomical customization for proportion study — stylized soft-tissue
+        and limb scales, not a clinical or cosmetic tool.
       </p>
       <ul className="morph-list">
         {ORDER.map((key) => {
@@ -58,9 +40,9 @@ export function MorphPanel() {
                 <label htmlFor={`morph-${key}`}>{meta.label}</label>
                 <span className="morph-value">
                   {key === 'hairColor' ? (
-                    <i className="hair-swatch" style={{ background: hair }} />
+                    <i className="hair-swatch" style={{ background: hair }} aria-hidden />
                   ) : null}
-                  {formatValue(key, value)}
+                  {value.toFixed(2)}
                 </span>
               </div>
               <input

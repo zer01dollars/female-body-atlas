@@ -340,76 +340,9 @@ input {
 }
 
 
-.morph-panel {
-  margin-top: 1.05rem;
-}
-
-.morph-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.morph-head h2 {
-  margin-bottom: 0;
-}
-
-.morph-lead {
-  margin: 0.4rem 0 0.7rem;
-  font-size: 0.72rem;
-  line-height: 1.45;
-  color: var(--color-muted);
-}
-
-.morph-row {
-  display: grid;
-  gap: 0.12rem;
-  margin-bottom: 0.7rem;
-}
-
-.morph-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.78rem;
-}
-
-.morph-value {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  color: var(--color-gold);
-  font-size: 0.72rem;
-}
-
-.hair-swatch {
-  display: inline-block;
-  width: 0.7rem;
-  height: 0.7rem;
-  border-radius: 999px;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
-}
-
-.morph-ends {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.62rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-}
-
-.morph-row input[type='range'] {
-  width: 100%;
-  accent-color: var(--color-gold);
-  cursor: pointer;
-}
-
 
 .morph-panel {
-  /* inherits dock section spacing */
+  /* dock section */
 }
 
 .morph-head {
@@ -452,16 +385,27 @@ input {
 .morph-label-row {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 0.5rem;
   font-size: 0.8rem;
   margin-bottom: 0.15rem;
 }
 
 .morph-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-variant-numeric: tabular-nums;
   color: var(--color-gold);
   font-size: 0.72rem;
+}
+
+.hair-swatch {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
 .morph-slider {
