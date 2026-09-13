@@ -3,6 +3,11 @@ import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import type { Group } from 'three'
 import { BODY_CENTER } from '../data/anatomy'
+import {
+  hairColorFromMorph,
+  morphPositionForPart,
+  morphScaleForPart,
+} from '../morphs'
 import { useAtlas } from '../state/AtlasProvider'
 import type { AnatomyPart, Primitive } from '../types'
 
@@ -42,6 +47,7 @@ export function AnatomyPartMesh({ part }: { part: AnatomyPart }) {
     visibleSystems,
     explode,
     isolate,
+    morphs,
     select,
     hover,
     wasTap,
@@ -52,25 +58,40 @@ export function AnatomyPartMesh({ part }: { part: AnatomyPart }) {
   const isHovered = hoveredId === part.id
   const faded = Boolean(isolate && selectedId && selectedId !== part.id)
 
+  const basePos = useMemo(
+    () => morphPositionForPart(part.id, part.position, morphs),
+    [part.id, part.position, morphs],
+  )
+
+  const partMorphScale = useMemo(
+    () => morphScaleForPart(part.id, morphs),
+    [part.id, morphs],
+  )
+
   const offset = useMemo(() => {
-    const dx = part.position[0] - BODY_CENTER[0]
-    const dy = part.position[1] - BODY_CENTER[1]
-    const dz = part.position[2] - BODY_CENTER[2]
+    const dx = basePos[0] - BODY_CENTER[0]
+    const dy = basePos[1] - BODY_CENTER[1]
+    const dz = basePos[2] - BODY_CENTER[2]
     return [
       dx * EXPLODE,
       dy * EXPLODE_Y,
       dz * EXPLODE + Math.sign(dx || 1) * 0.12,
     ] as const
-  }, [part.position])
+  }, [basePos])
 
   useFrame((_, dt) => {
     const target = explode ? 1 : 0
     explodeK.current += (target - explodeK.current) * Math.min(1, dt * 4.2)
     if (!group.current) return
     group.current.position.set(
-      part.position[0] + offset[0] * explodeK.current,
-      part.position[1] + offset[1] * explodeK.current,
-      part.position[2] + offset[2] * explodeK.current,
+      basePos[0] + offset[0] * explodeK.current,
+      basePos[1] + offset[1] * explodeK.current,
+      basePos[2] + offset[2] * explodeK.current,
+    )
+    group.current.scale.set(
+      partMorphScale[0],
+      partMorphScale[1],
+      partMorphScale[2],
     )
     group.current.visible = visible
   })
@@ -78,15 +99,20 @@ export function AnatomyPartMesh({ part }: { part: AnatomyPart }) {
   if (!visible) return null
 
   const opacity = faded ? 0.07 : (part.opacity ?? 0.92)
-  const color = isSelected ? '#f3ddb8' : isHovered ? '#f0d2c0' : part.color
+  const morphHair =
+    part.id === 'scalp-hair' ? hairColorFromMorph(morphs.hairColor) : null
+  const baseColor = morphHair ?? part.color
+  const color = isSelected ? '#f3ddb8' : isHovered ? '#f0d2c0' : baseColor
   const emissive = isSelected ? '#c9a24a' : isHovered ? '#8a6040' : '#000000'
   const emissiveIntensity = isSelected ? 0.4 : isHovered ? 0.18 : 0
+  const roughness = part.id === 'scalp-hair' ? 0.78 : 0.48
 
   return (
     <group
       ref={group}
-      position={part.position}
+      position={basePos}
       rotation={part.rotation}
+      scale={partMorphScale}
       onPointerOver={(e) => {
         e.stopPropagation()
         hover(part.id)
@@ -113,7 +139,7 @@ export function AnatomyPartMesh({ part }: { part: AnatomyPart }) {
           <Geometry primitive={primitive} />
           <meshStandardMaterial
             color={color}
-            roughness={0.48}
+            roughness={roughness}
             metalness={0.08}
             transparent
             opacity={opacity}

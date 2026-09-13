@@ -9,6 +9,10 @@ import {
 } from 'react'
 import { ANATOMY } from '../data/anatomy'
 import {
+  DEFAULT_MORPHS,
+  type MorphAttributes,
+} from '../morphs'
+import {
   SYSTEMS,
   type AnatomySystem,
   type PresetId,
@@ -42,6 +46,7 @@ export type AtlasContextValue = {
   showSilhouette: boolean
   search: string
   preset: PresetId
+  morphs: MorphAttributes
   select: (id: string | null) => void
   hover: (id: string | null) => void
   toggleSystem: (system: AnatomySystem) => void
@@ -50,6 +55,8 @@ export type AtlasContextValue = {
   setIsolate: (value: boolean) => void
   setShowSilhouette: (value: boolean) => void
   setSearch: (query: string) => void
+  setMorph: <K extends keyof MorphAttributes>(key: K, value: MorphAttributes[K]) => void
+  resetMorphs: () => void
   markPointerDown: (x: number, y: number) => void
   markPointerMove: (x: number, y: number) => void
   wasTap: () => boolean
@@ -68,6 +75,7 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
   const [showSilhouette, setShowSilhouette] = useState(true)
   const [search, setSearch] = useState('')
   const [preset, setPreset] = useState<PresetId>('all')
+  const [morphs, setMorphs] = useState<MorphAttributes>(DEFAULT_MORPHS)
   const pointer = useRef({ x: 0, y: 0, dragged: false })
 
   const select = useCallback((id: string | null) => {
@@ -95,6 +103,17 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
     if (next === 'reproductive') {
       setSelectedId('uterus')
     }
+  }, [])
+
+  const setMorph = useCallback(
+    <K extends keyof MorphAttributes>(key: K, value: MorphAttributes[K]) => {
+      setMorphs((prev) => ({ ...prev, [key]: value }))
+    },
+    [],
+  )
+
+  const resetMorphs = useCallback(() => {
+    setMorphs({ ...DEFAULT_MORPHS })
   }, [])
 
   const markPointerDown = useCallback((x: number, y: number) => {
@@ -130,6 +149,7 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
       showSilhouette,
       search,
       preset,
+      morphs,
       select,
       hover,
       toggleSystem,
@@ -138,6 +158,8 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
       setIsolate,
       setShowSilhouette,
       setSearch,
+      setMorph,
+      resetMorphs,
       markPointerDown,
       markPointerMove,
       wasTap,
@@ -152,10 +174,13 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
       showSilhouette,
       search,
       preset,
+      morphs,
       select,
       hover,
       toggleSystem,
       applyPreset,
+      setMorph,
+      resetMorphs,
       markPointerDown,
       markPointerMove,
       wasTap,

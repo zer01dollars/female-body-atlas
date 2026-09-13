@@ -339,6 +339,145 @@ input {
   backdrop-filter: blur(6px);
 }
 
+
+.morph-panel {
+  margin-top: 1.05rem;
+}
+
+.morph-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.morph-head h2 {
+  margin-bottom: 0;
+}
+
+.morph-lead {
+  margin: 0.4rem 0 0.7rem;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--color-muted);
+}
+
+.morph-row {
+  display: grid;
+  gap: 0.12rem;
+  margin-bottom: 0.7rem;
+}
+
+.morph-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+}
+
+.morph-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--color-gold);
+  font-size: 0.72rem;
+}
+
+.hair-swatch {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.morph-ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.morph-row input[type='range'] {
+  width: 100%;
+  accent-color: var(--color-gold);
+  cursor: pointer;
+}
+
+
+.morph-panel {
+  /* inherits dock section spacing */
+}
+
+.morph-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.morph-head h2 {
+  margin: 0;
+}
+
+.morph-reset {
+  padding: 0.2rem 0.55rem;
+  font-size: 0.7rem;
+  flex: none;
+}
+
+.morph-blurb {
+  margin: 0 0 0.65rem;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--color-muted);
+}
+
+.morph-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.morph-row {
+  min-width: 0;
+}
+
+.morph-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  margin-bottom: 0.15rem;
+}
+
+.morph-value {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-gold);
+  font-size: 0.72rem;
+}
+
+.morph-slider {
+  width: 100%;
+  accent-color: var(--color-gold);
+  cursor: pointer;
+}
+
+.morph-ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  color: var(--color-muted);
+  margin-top: 0.05rem;
+}
+
 @media (max-width: 900px) {
   .app-main {
     grid-template-columns: 1fr;
@@ -357,6 +496,11 @@ input {
   .dock section {
     min-width: max-content;
     margin: 0;
+  }
+
+  .morph-panel {
+    min-width: 220px;
+    margin-top: 0;
   }
 
   .dock section + section {

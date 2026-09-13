@@ -1,5 +1,6 @@
 import { PRESETS, SYSTEMS, SYSTEM_META, type PresetId } from '../types'
 import { useAtlas } from '../state/AtlasProvider'
+import { MorphPanel } from './MorphPanel'
 
 const PRESET_LABELS: Record<PresetId, string> = {
   all: 'All',
@@ -62,6 +63,8 @@ export function ControlDock() {
           ))}
         </ul>
       </section>
+
+      <MorphPanel />
 
       <section className="toggles">
         <label className="toggle">

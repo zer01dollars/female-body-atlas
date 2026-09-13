@@ -752,6 +752,20 @@ export const ANATOMY: AnatomyPart[] = [
     'The cord runs from the brainstem through the vertebral canal to about L1–L2, then continues as the cauda equina. It is the highway between brain and body.',
     [{ kind: 'capsule', args: [0.055, 5.1, 4, 8] }],
   ),
+  part(
+    'scalp-hair',
+    'Scalp hair',
+    'integumentary',
+    '#3d2416',
+    [0, 15.82, 0.02],
+    'Hair shafts emerge from follicles in the scalp. Color in this atlas is a simple melanin-range slider (eumelanin / pheomelanin), not a dermatology or styling tool. Hair is shown as a compact educational mass over the cranium.',
+    [
+      { kind: 'sphere', args: [0.74, 24, 16], scale: [0.96, 0.62, 1.02], position: [0, 0.16, -0.04] },
+      { kind: 'sphere', args: [0.3, 16, 12], scale: [0.85, 0.7, 0.75], position: [0, 0.02, -0.5] },
+      { kind: 'sphere', args: [0.2, 12, 10], scale: [0.7, 1.1, 0.7], position: [0.42, -0.12, 0.05] },
+      { kind: 'sphere', args: [0.2, 12, 10], scale: [0.7, 1.1, 0.7], position: [-0.42, -0.12, 0.05] },
+    ],
+  ),
 ]
 
 export const ANATOMY_BY_ID: Record<string, AnatomyPart> = Object.fromEntries(

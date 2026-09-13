@@ -1,6 +1,6 @@
 # Femora Atlas
 
-Interactive 3D explorer of **stylized female anatomy**. Orbit the figure, toggle organ systems, isolate a structure, and pull the body into an exploded inventory.
+Interactive 3D explorer of **stylized female anatomy**. Orbit the figure, toggle organ systems, isolate a structure, pull the body into an exploded inventory, and adjust live **body attribute** morph sliders.
 
 Femora Atlas is an educational web app — a conceptual counterpart to male-reference anatomy viewers such as [Human Atlas](https://github.com/ashemag/human-atlas), built independently with procedural meshes rather than BodyParts3D data.
 
@@ -16,8 +16,15 @@ Femora Atlas is an educational web app — a conceptual counterpart to male-refe
 - Search by structure name, id, or system
 - Isolate mode fades everything except the selection
 - Explode toggle offsets parts outward from the body center
+- **Body attributes** panel with live range sliders that morph the figure:
+  - Hair color (stylized scalp mesh pigment)
+  - Musculature (lean ↔ muscular bulk on muscle groups)
+  - Chest size (mammary / soft-tissue scale)
+  - Butt size (gluteal soft-tissue scale)
+  - Height (overall Y stature, feet stay grounded)
+  - Arm length (upper-limb chain stretch from the shoulder)
 - Detail panel on desktop; bottom sheet on small screens
-- Optional translucent female silhouette for proportion context
+- Optional translucent female silhouette for proportion context (also follows morphs)
 - Educational disclaimer in the footer
 
 ## Stack
@@ -44,7 +51,7 @@ The app is a static site. `vercel.json` rewrites all routes to `index.html`. Poi
 
 ## Models
 
-All geometry is **procedural and stylized** — capsules, ellipsoids, and simple solids arranged in adult female proportions (narrower shoulders, wider pelvis, mammary tissue, internal reproductive organs). It is not a scan, not BodyParts3D, and not a complete anatomical atlas.
+All geometry is **procedural and stylized** — capsules, ellipsoids, and simple solids arranged in adult female proportions (narrower shoulders, wider pelvis, mammary tissue, internal reproductive organs). Morph sliders are anatomical customization for proportion study, not a clinical or cosmetic tool. The figure is not a scan, not BodyParts3D, and not a complete anatomical atlas.
 
 See [ATTRIBUTION.md](./ATTRIBUTION.md).
 

@@ -7,6 +7,7 @@ export const SYSTEMS = [
   'urinary',
   'reproductive',
   'nervous',
+  'integumentary',
 ] as const
 
 export type AnatomySystem = (typeof SYSTEMS)[number]
@@ -55,6 +56,11 @@ export const SYSTEM_META: Record<
     color: '#b8a8d0',
     blurb: 'Brain and spinal cord — the central axis of sensation and control.',
   },
+  integumentary: {
+    label: 'Integumentary',
+    color: '#8a6a4a',
+    blurb: 'Hair and surface coverings. Color here is a melanin-range schematic, not a dermatology atlas.',
+  },
 }
 
 export const PRESETS = ['all', 'skeleton', 'organs', 'reproductive'] as const
@@ -89,3 +95,12 @@ export type AnatomyPart = {
   color: string
   opacity?: number
 }
+
+export type {
+  MorphAttributes,
+} from './morphs'
+
+export {
+  DEFAULT_MORPHS,
+  MORPH_META,
+} from './morphs'

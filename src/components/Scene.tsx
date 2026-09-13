@@ -28,6 +28,22 @@ function Lights() {
   )
 }
 
+function Rig() {
+  const { morphs } = useAtlas()
+  const h = morphs.height
+  return (
+    <OrbitControls
+      makeDefault
+      enableDamping
+      dampingFactor={0.08}
+      minDistance={6}
+      maxDistance={28}
+      target={[0, 8.6 * h, 0]}
+      maxPolarAngle={Math.PI * 0.92}
+    />
+  )
+}
+
 export function Scene() {
   const { select, wasTap, markPointerDown, markPointerMove } = useAtlas()
 
@@ -60,15 +76,7 @@ export function Scene() {
             far={12}
           />
         </Suspense>
-        <OrbitControls
-          makeDefault
-          enableDamping
-          dampingFactor={0.08}
-          minDistance={6}
-          maxDistance={28}
-          target={[0, 8.6, 0]}
-          maxPolarAngle={Math.PI * 0.92}
-        />
+        <Rig />
       </Canvas>
     </div>
   )
