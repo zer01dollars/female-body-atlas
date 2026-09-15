@@ -228,9 +228,9 @@ export function morphScaleForGroup(
     sz *= c
   }
   if (group === 'butt') {
-    const b = 0.7 + morphs.buttSize * 0.7
+    const b = 1 + (morphs.buttSize - 0.5) * 1.4
     sx *= b
-    sy *= 0.82 + morphs.buttSize * 0.4
+    sy *= 1 + (morphs.buttSize - 0.5) * 0.8
     sz *= b
   }
   if (group === 'arm') {

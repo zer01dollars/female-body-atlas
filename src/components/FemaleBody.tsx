@@ -17,7 +17,7 @@ import { buildProceduralHair } from './ProceduralHair'
 
 const MODEL_URL = `${import.meta.env.BASE_URL}models/female-atlas.glb`
 /** Max radial explode offset (meters) at explodeAmount = 1. */
-const EXPLODE_MAX = 0.35
+const EXPLODE_MAX = 0.70
 
 type MeshEntry = {
   mesh: THREE.Mesh
@@ -161,7 +161,7 @@ function applySkinSoftMorph(
   const { minY, maxY, cy, cx, cz } = entry.skinBox
   const h = Math.max(1e-6, maxY - minY)
   const chestAmt = (morphs.chestSize - 0.5) * 0.22
-  const buttAmt = (morphs.buttSize - 0.5) * 0.28
+  const buttAmt = (morphs.buttSize - 0.5) * 0.56
   const shoulderAmt = morphs.shoulderWidth - 1
   const armAmt = morphs.armLength - 1
 
