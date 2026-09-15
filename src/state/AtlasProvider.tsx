@@ -18,12 +18,14 @@ import {
   type PresetId,
 } from '../types'
 
-const ALL_VISIBLE = Object.fromEntries(
-  SYSTEMS.map((s) => [s, s !== 'integumentary']),
-) as Record<AnatomySystem, boolean>
-// Skin off by default so organs are visible; user can enable translucent skin.
+/** Default: Normal / Complete — full person with skin on. */
+const ALL_VISIBLE = Object.fromEntries(SYSTEMS.map((s) => [s, true])) as Record<
+  AnatomySystem,
+  boolean
+>
 
 const PRESET_SYSTEMS: Record<PresetId, AnatomySystem[]> = {
+  normal: [...SYSTEMS],
   all: SYSTEMS.filter((s) => s !== 'integumentary'),
   skeleton: ['skeletal'],
   organs: [
@@ -44,13 +46,15 @@ export type AvailableMorphs = {
   chest: boolean
   butt: boolean
   arm: boolean
+  skin: boolean
 }
 
 export type AtlasContextValue = {
   selectedId: string | null
   hoveredId: string | null
   visibleSystems: Record<AnatomySystem, boolean>
-  explode: boolean
+  /** 0 = assembled, 1 = fully exploded. */
+  explodeAmount: number
   isolate: boolean
   drawerOpen: boolean
   search: string
@@ -61,7 +65,7 @@ export type AtlasContextValue = {
   hover: (id: string | null) => void
   toggleSystem: (system: AnatomySystem) => void
   applyPreset: (preset: PresetId) => void
-  setExplode: (value: boolean) => void
+  setExplodeAmount: (value: number) => void
   setIsolate: (value: boolean) => void
   setDrawerOpen: (value: boolean) => void
   setSearch: (query: string) => void
@@ -81,18 +85,19 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [visibleSystems, setVisibleSystems] =
     useState<Record<AnatomySystem, boolean>>(ALL_VISIBLE)
-  const [explode, setExplode] = useState(false)
+  const [explodeAmount, setExplodeAmount] = useState(0)
   const [isolate, setIsolate] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(true)
   const [search, setSearch] = useState('')
-  const [preset, setPreset] = useState<PresetId>('all')
+  const [preset, setPreset] = useState<PresetId>('normal')
   const [morphs, setMorphs] = useState<MorphAttributes>(DEFAULT_MORPHS)
   const [availableMorphs, setAvailableMorphs] = useState<AvailableMorphs>({
-    hair: false,
+    hair: true,
     muscle: true,
     chest: true,
-    butt: false,
-    arm: false,
+    butt: true,
+    arm: true,
+    skin: true,
   })
   const pointer = useRef({ x: 0, y: 0, dragged: false })
 
@@ -171,7 +176,7 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
       selectedId,
       hoveredId,
       visibleSystems,
-      explode,
+      explodeAmount,
       isolate,
       drawerOpen,
       search,
@@ -182,7 +187,7 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
       hover,
       toggleSystem,
       applyPreset,
-      setExplode,
+      setExplodeAmount,
       setIsolate,
       setDrawerOpen,
       setSearch,
@@ -198,7 +203,7 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
       selectedId,
       hoveredId,
       visibleSystems,
-      explode,
+      explodeAmount,
       isolate,
       drawerOpen,
       search,

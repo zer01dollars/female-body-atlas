@@ -1,33 +1,61 @@
-/** Morph attribute helpers — best-effort scales/material tweaks on HuBMAP meshes. */
+/** Morph attribute helpers — scales / materials on HuBMAP meshes + procedural hair. */
 
 export type MorphAttributes = {
-  /** 0–1 hair pigment — only if a hair mesh exists. */
+  /** 0 fair ↔ 1 deep skin pigment. */
+  skinTone: number
+  /** 0 ghost ↔ 1 fully opaque skin. */
+  skinOpacity: number
+  /** 0–1 hair pigment. */
   hairColor: number
+  /** 0 short/cropped ↔ 1 long/voluminous hair. */
+  hairLength: number
   /** 0 lean ↔ 1 more developed musculature (bulk on muscle meshes). */
   musculature: number
   /** Soft-tissue chest / mammary scale. */
   chestSize: number
-  /** Gluteal / lower soft-tissue scale (best-effort). */
+  /** Gluteal / lower soft-tissue scale (skin region + pelvic meshes). */
   buttSize: number
   /** Overall stature (Y scale). */
   height: number
-  /** Upper-limb length stretch (best-effort if arm nodes exist). */
+  /** Upper-limb length stretch (skin arm band + arm bones if present). */
   armLength: number
+  /** Biacromial / shoulder breadth (skin upper torso X). */
+  shoulderWidth: number
 }
 
 export const DEFAULT_MORPHS: MorphAttributes = {
+  skinTone: 0.42,
+  skinOpacity: 1,
   hairColor: 0.32,
+  hairLength: 0.55,
   musculature: 0.42,
   chestSize: 0.5,
   buttSize: 0.5,
   height: 1,
   armLength: 1,
+  shoulderWidth: 1,
 }
 
 export const MORPH_META: Record<
   keyof MorphAttributes,
   { label: string; min: number; max: number; step: number; left: string; right: string }
 > = {
+  skinTone: {
+    label: 'Skin tone',
+    min: 0,
+    max: 1,
+    step: 0.01,
+    left: 'Fair',
+    right: 'Deep',
+  },
+  skinOpacity: {
+    label: 'Skin opacity',
+    min: 0,
+    max: 1,
+    step: 0.01,
+    left: 'Ghost',
+    right: 'Opaque',
+  },
   hairColor: {
     label: 'Hair color',
     min: 0,
@@ -35,6 +63,14 @@ export const MORPH_META: Record<
     step: 0.01,
     left: 'Dark',
     right: 'Light',
+  },
+  hairLength: {
+    label: 'Hair length',
+    min: 0,
+    max: 1,
+    step: 0.01,
+    left: 'Short',
+    right: 'Long',
   },
   musculature: {
     label: 'Musculature',
@@ -76,6 +112,14 @@ export const MORPH_META: Record<
     left: 'Shorter',
     right: 'Longer',
   },
+  shoulderWidth: {
+    label: 'Shoulder width',
+    min: 0.88,
+    max: 1.14,
+    step: 0.005,
+    left: 'Narrower',
+    right: 'Wider',
+  },
 }
 
 const HAIR_STOPS: Array<{ t: number; hex: string }> = [
@@ -86,6 +130,16 @@ const HAIR_STOPS: Array<{ t: number; hex: string }> = [
   { t: 0.7, hex: '#8a4a28' },
   { t: 0.85, hex: '#c4a06a' },
   { t: 1, hex: '#e2d2b0' },
+]
+
+const SKIN_STOPS: Array<{ t: number; hex: string }> = [
+  { t: 0, hex: '#f3d7c4' },
+  { t: 0.18, hex: '#e8c4a8' },
+  { t: 0.35, hex: '#d4a574' },
+  { t: 0.5, hex: '#c48a5a' },
+  { t: 0.65, hex: '#a06b45' },
+  { t: 0.8, hex: '#7a4a32' },
+  { t: 1, hex: '#4a2c1e' },
 ]
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -105,24 +159,33 @@ function rgbToHex(r: number, g: number, b: number): string {
   return `#${to(r)}${to(g)}${to(b)}`
 }
 
-export function hairColorFromMorph(t: number): string {
+function lerpStops(stops: Array<{ t: number; hex: string }>, t: number): string {
   const x = Math.min(1, Math.max(0, t))
   let i = 0
-  while (i < HAIR_STOPS.length - 2 && HAIR_STOPS[i + 1].t < x) i++
-  const a = HAIR_STOPS[i]
-  const b = HAIR_STOPS[i + 1]
+  while (i < stops.length - 2 && stops[i + 1].t < x) i++
+  const a = stops[i]
+  const b = stops[i + 1]
   const u = (x - a.t) / (b.t - a.t || 1)
   const [ar, ag, ab] = hexToRgb(a.hex)
   const [br, bg, bb] = hexToRgb(b.hex)
   return rgbToHex(ar + (br - ar) * u, ag + (bg - ag) * u, ab + (bb - ab) * u)
 }
 
+export function hairColorFromMorph(t: number): string {
+  return lerpStops(HAIR_STOPS, t)
+}
+
+export function skinColorFromMorph(t: number): string {
+  return lerpStops(SKIN_STOPS, t)
+}
+
 /** Classify a mesh node name into morph target groups. */
-export type MorphGroup = 'hair' | 'muscle' | 'chest' | 'butt' | 'arm' | null
+export type MorphGroup = 'hair' | 'muscle' | 'chest' | 'butt' | 'arm' | 'skin' | null
 
 export function morphGroupForName(name: string): MorphGroup {
   const n = name.toLowerCase()
-  if (/hair|scalp|eyebrow/.test(n)) return 'hair'
+  if (/hair|scalp|eyebrow|atlas_hair/.test(n)) return 'hair'
+  if (/^vh_f_skin$|integument|body_shell/.test(n)) return 'skin'
   if (
     /mammary|nipple|areola|lactiferous|fat_[lr]$|fat_l|fat_r|areolar/.test(n)
   )
@@ -173,6 +236,13 @@ export function morphScaleForGroup(
   if (group === 'arm') {
     sy *= morphs.armLength
   }
+  if (group === 'hair') {
+    const len = 0.55 + morphs.hairLength * 0.9
+    const vol = 0.75 + morphs.hairLength * 0.45
+    sx *= vol
+    sy *= len
+    sz *= vol
+  }
   return [sx, sy, sz]
 }
 
@@ -183,8 +253,16 @@ export function detectAvailableMorphs(names: string[]): {
   chest: boolean
   butt: boolean
   arm: boolean
+  skin: boolean
 } {
-  const flags = { hair: false, muscle: false, chest: false, butt: false, arm: false }
+  const flags = {
+    hair: false,
+    muscle: false,
+    chest: false,
+    butt: false,
+    arm: false,
+    skin: false,
+  }
   for (const name of names) {
     const g = morphGroupForName(name)
     if (g === 'hair') flags.hair = true
@@ -192,6 +270,7 @@ export function detectAvailableMorphs(names: string[]): {
     if (g === 'chest') flags.chest = true
     if (g === 'butt') flags.butt = true
     if (g === 'arm') flags.arm = true
+    if (g === 'skin') flags.skin = true
   }
   return flags
 }

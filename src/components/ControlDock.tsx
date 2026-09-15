@@ -3,7 +3,8 @@ import { useAtlas } from '../state/AtlasProvider'
 import { MorphPanel } from './MorphPanel'
 
 const PRESET_LABELS: Record<PresetId, string> = {
-  all: 'All',
+  normal: 'Normal',
+  all: 'Organs+',
   skeleton: 'Skeleton',
   organs: 'Organs',
   reproductive: 'Reproductive',
@@ -15,8 +16,8 @@ export function ControlDock() {
     toggleSystem,
     applyPreset,
     preset,
-    explode,
-    setExplode,
+    explodeAmount,
+    setExplodeAmount,
     isolate,
     setIsolate,
     selectedId,
@@ -83,14 +84,30 @@ export function ControlDock() {
       <MorphPanel />
 
       <section className="toggles">
-        <label className="toggle">
+        <div className="explode-control">
+          <div className="morph-label-row">
+            <label htmlFor="explode-amount">Explode</label>
+            <span className="morph-value">{Math.round(explodeAmount * 100)}%</span>
+          </div>
           <input
-            type="checkbox"
-            checked={explode}
-            onChange={(e) => setExplode(e.target.checked)}
+            id="explode-amount"
+            className="morph-slider"
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={explodeAmount}
+            onChange={(e) => setExplodeAmount(Number(e.target.value))}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(explodeAmount * 100)}
+            aria-label="Explode amount"
           />
-          <span>Explode inventory</span>
-        </label>
+          <div className="morph-ends">
+            <span>Assembled</span>
+            <span>Exploded</span>
+          </div>
+        </div>
         <label className="toggle">
           <input
             type="checkbox"

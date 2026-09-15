@@ -1,6 +1,6 @@
 # Femora Atlas
 
-Interactive 3D explorer of **female anatomy** built on the HuBMAP *3D Reference Organ Set for Female v1.5*. Orbit a full-bleed viewport, toggle organ systems, isolate a structure, explode the inventory, search 800+ named meshes, and adjust best-effort **body attribute** morph sliders.
+Interactive 3D explorer of **female anatomy** built on the HuBMAP *3D Reference Organ Set for Female v1.5*. Orbit a full-bleed viewport, toggle organ systems, isolate a structure, scrub a continuous **explode** slider, search 800+ named meshes, and adjust live **body attribute** morphs (skin, hair, proportions).
 
 **Not for medical or diagnostic use.**
 
@@ -11,14 +11,15 @@ Interactive 3D explorer of **female anatomy** built on the HuBMAP *3D Reference 
 ## Features
 
 - Full-window WebGL canvas — floating overlay chrome (top bar, collapsible left drawer, detail sheet) does not shrink the viewport
-- Camera auto-fits the whole female reference on load
-- Orbit / zoom / pan with damped controls; click to select (drag does not select)
+- **Normal / Complete** default preset — HuBMAP skin ON + procedural hair so the figure reads as a whole person first
+- Skin tone & opacity (opaque ↔ ghost) to reveal organs underneath
+- Continuous **Explode** amount slider (0–100%) with smooth lerp — scrub to watch parts separate and reassemble
+- Camera auto-fits on load; **Reset view** button; orbit / zoom / pan; click to select (drag does not select)
 - 888 HuBMAP meshes mapped to systems: skeletal, muscular, circulatory, respiratory, digestive, urinary, reproductive, nervous, lymphatic, integumentary
-- Presets: **All**, **Skeleton**, **Organs**, **Reproductive**
+- Presets: **Normal**, **Organs+**, **Skeleton**, **Organs**, **Reproductive**
 - Search by structure name, mesh id, system, or FMA id (where enriched)
-- Isolate + explode (radial offset from body centroid)
-- Body attributes (best-effort on matching nodes): musculature, chest/mammary scale, height; hair / butt / arm sliders appear only if meshes exist
-- Studio lighting + physical materials
+- Isolate selection; body morphs: skin tone/opacity, hair color/length, musculature, chest, butt, height, shoulder width, arm length
+- Studio/city environment lighting + physical materials
 - Dark educational UI
 
 ## Stack
@@ -42,6 +43,7 @@ GitHub Pages base path is `/female-body-atlas/` (`vite.config.ts`).
 ## Models
 
 - **Shipped:** `public/models/female-atlas.glb` — optimized (simplify + Meshopt), ~32 MB, browser-friendly
+- **Procedural hair:** lightweight cap/cards parented to head bounds (recolorable / scalable); not part of HuBMAP
 - **Source (not in git):** HuBMAP united female GLB (~202 MB). See [ATTRIBUTION.md](./ATTRIBUTION.md).
 - Official BodyParts3D 4.0 geometry is adult **male** only; this project uses HuBMAP female reference meshes instead, with BodyParts3D FMA naming for search enrichment where labels match.
 

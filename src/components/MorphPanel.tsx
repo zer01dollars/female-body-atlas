@@ -1,16 +1,21 @@
 import {
   hairColorFromMorph,
   MORPH_META,
+  skinColorFromMorph,
   type MorphAttributes,
 } from '../morphs'
 import { useAtlas } from '../state/AtlasProvider'
 
 const ORDER: (keyof MorphAttributes)[] = [
+  'skinTone',
+  'skinOpacity',
   'hairColor',
+  'hairLength',
   'musculature',
   'chestSize',
   'buttSize',
   'height',
+  'shoulderWidth',
   'armLength',
 ]
 
@@ -18,11 +23,12 @@ function morphKeyAvailable(
   key: keyof MorphAttributes,
   available: ReturnType<typeof useAtlas>['availableMorphs'],
 ): boolean {
-  if (key === 'hairColor') return available.hair
+  if (key === 'skinTone' || key === 'skinOpacity') return available.skin
+  if (key === 'hairColor' || key === 'hairLength') return available.hair
   if (key === 'musculature') return available.muscle
   if (key === 'chestSize') return available.chest
   if (key === 'buttSize') return available.butt
-  if (key === 'armLength') return available.arm
+  if (key === 'armLength' || key === 'shoulderWidth') return available.arm
   if (key === 'height') return true
   return true
 }
@@ -30,6 +36,7 @@ function morphKeyAvailable(
 export function MorphPanel() {
   const { morphs, setMorph, resetMorphs, availableMorphs } = useAtlas()
   const hair = hairColorFromMorph(morphs.hairColor)
+  const skin = skinColorFromMorph(morphs.skinTone)
   const visibleKeys = ORDER.filter((k) => morphKeyAvailable(k, availableMorphs))
 
   return (
@@ -41,8 +48,8 @@ export function MorphPanel() {
         </button>
       </div>
       <p className="morph-blurb">
-        Best-effort proportion tweaks on matching HuBMAP meshes (scale / material).
-        Not a clinical or cosmetic tool.
+        Live morphs on HuBMAP skin/organs plus procedural hair. Best-effort proportions — not clinical
+        or cosmetic advice.
       </p>
       {visibleKeys.length === 0 ? (
         <p className="morph-blurb">No morph targets detected on this model.</p>
@@ -58,6 +65,9 @@ export function MorphPanel() {
                   <span className="morph-value">
                     {key === 'hairColor' ? (
                       <i className="hair-swatch" style={{ background: hair }} aria-hidden />
+                    ) : null}
+                    {key === 'skinTone' ? (
+                      <i className="hair-swatch" style={{ background: skin }} aria-hidden />
                     ) : null}
                     {value.toFixed(2)}
                   </span>

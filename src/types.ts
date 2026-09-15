@@ -65,11 +65,11 @@ export const SYSTEM_META: Record<
   integumentary: {
     label: 'Integumentary',
     color: '#c4a882',
-    blurb: 'Body skin surface. Toggle off or keep translucent to reveal organs.',
+    blurb: 'Body skin + procedural hair. Opaque by default in Normal view; lower opacity to ghost and reveal organs.',
   },
 }
 
-export const PRESETS = ['all', 'skeleton', 'organs', 'reproductive'] as const
+export const PRESETS = ['normal', 'all', 'skeleton', 'organs', 'reproductive'] as const
 export type PresetId = (typeof PRESETS)[number]
 
 export type AnatomyPart = {

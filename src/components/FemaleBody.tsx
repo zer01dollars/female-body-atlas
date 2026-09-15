@@ -8,12 +8,16 @@ import {
   hairColorFromMorph,
   morphGroupForName,
   morphScaleForGroup,
+  skinColorFromMorph,
   type MorphGroup,
 } from '../morphs'
 import { SYSTEM_META, type AnatomySystem } from '../types'
 import { useAtlas } from '../state/AtlasProvider'
+import { buildProceduralHair } from './ProceduralHair'
 
 const MODEL_URL = `${import.meta.env.BASE_URL}models/female-atlas.glb`
+/** Max radial explode offset (meters) at explodeAmount = 1. */
+const EXPLODE_MAX = 0.35
 
 type MeshEntry = {
   mesh: THREE.Mesh
@@ -24,6 +28,9 @@ type MeshEntry = {
   explodeDir: THREE.Vector3
   group: MorphGroup
   materials: THREE.Material[]
+  /** Original local positions for skin soft morphs. */
+  skinBase?: Float32Array
+  skinBox?: { minY: number; maxY: number; cy: number; cx: number; cz: number }
 }
 
 function resolveSystem(mesh: THREE.Object3D): AnatomySystem {
@@ -33,10 +40,40 @@ function resolveSystem(mesh: THREE.Object3D): AnatomySystem {
     if (sys) return sys
     p = p.parent
   }
+  if (/atlas_hair/i.test(mesh.name)) return 'integumentary'
   return 'skeletal'
 }
 
+function makeSkinMaterial(base?: THREE.Material): THREE.MeshPhysicalMaterial {
+  const color =
+    base &&
+    (base instanceof THREE.MeshStandardMaterial ||
+      base instanceof THREE.MeshPhysicalMaterial)
+      ? base.color.clone()
+      : new THREE.Color('#d4a574')
+  return new THREE.MeshPhysicalMaterial({
+    color,
+    roughness: 0.48,
+    metalness: 0.0,
+    clearcoat: 0.12,
+    clearcoatRoughness: 0.55,
+    sheen: 0.35,
+    sheenRoughness: 0.6,
+    sheenColor: new THREE.Color('#f0d0b8'),
+    transmission: 0,
+    thickness: 0.35,
+    envMapIntensity: 0.85,
+    side: THREE.FrontSide,
+    transparent: true,
+    opacity: 1,
+    depthWrite: true,
+  })
+}
+
 function enhanceMaterial(mat: THREE.Material, system: AnatomySystem): THREE.Material {
+  if (system === 'integumentary') {
+    return makeSkinMaterial(mat)
+  }
   const colorHint = new THREE.Color(SYSTEM_META[system].color)
   if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshPhysicalMaterial) {
     const next = mat.clone()
@@ -47,11 +84,6 @@ function enhanceMaterial(mat: THREE.Material, system: AnatomySystem): THREE.Mate
     }
     next.envMapIntensity = 0.6
     next.side = THREE.DoubleSide
-    if (system === 'integumentary') {
-      next.transparent = true
-      next.opacity = 0.2
-      next.depthWrite = false
-    }
     return next
   }
   return new THREE.MeshPhysicalMaterial({
@@ -59,25 +91,89 @@ function enhanceMaterial(mat: THREE.Material, system: AnatomySystem): THREE.Mate
     roughness: 0.62,
     metalness: 0.04,
     side: THREE.DoubleSide,
-    transparent: system === 'integumentary',
-    opacity: system === 'integumentary' ? 0.2 : 1,
-    depthWrite: system !== 'integumentary',
   })
+}
+
+/** Soft region morphs on the body skin shell (chest / glute / shoulder / arm). */
+function applySkinSoftMorph(
+  entry: MeshEntry,
+  morphs: {
+    chestSize: number
+    buttSize: number
+    shoulderWidth: number
+    armLength: number
+  },
+) {
+  if (!entry.skinBase || !entry.skinBox) return
+  const pos = entry.mesh.geometry.getAttribute('position') as THREE.BufferAttribute
+  const base = entry.skinBase
+  const { minY, maxY, cy, cx, cz } = entry.skinBox
+  const h = Math.max(1e-6, maxY - minY)
+  const chestAmt = (morphs.chestSize - 0.5) * 0.22
+  const buttAmt = (morphs.buttSize - 0.5) * 0.28
+  const shoulderAmt = morphs.shoulderWidth - 1
+  const armAmt = morphs.armLength - 1
+
+  for (let i = 0; i < pos.count; i++) {
+    const i3 = i * 3
+    let x = base[i3]
+    let y = base[i3 + 1]
+    let z = base[i3 + 2]
+    const t = (y - minY) / h // 0 feet → 1 head
+
+    // Chest band (~0.55–0.72)
+    if (t > 0.52 && t < 0.74 && z > cz - 0.02) {
+      const w = 1 - Math.abs((t - 0.63) / 0.12)
+      const k = Math.max(0, w) * chestAmt
+      x += (x - cx) * k
+      z += (z - cz) * k * 1.2
+    }
+
+    // Glute / hip band (~0.28–0.42), posterior
+    if (t > 0.26 && t < 0.44 && z < cz + 0.02) {
+      const w = 1 - Math.abs((t - 0.35) / 0.1)
+      const k = Math.max(0, w) * buttAmt
+      x += (x - cx) * k * 1.15
+      z += (z - cz) * k * 1.4
+    }
+
+    // Shoulders (~0.72–0.82)
+    if (t > 0.7 && t < 0.84) {
+      const w = 1 - Math.abs((t - 0.77) / 0.08)
+      const k = Math.max(0, w) * shoulderAmt
+      x += (x - cx) * k
+    }
+
+    // Outer arm / lateral torso (~0.45–0.78, lateral)
+    const lat = Math.abs(x - cx)
+    if (t > 0.42 && t < 0.8 && lat > 0.12) {
+      const w = Math.min(1, (lat - 0.12) / 0.2)
+      y += (y - cy) * armAmt * 0.35 * w
+      x += Math.sign(x - cx || 1) * armAmt * 0.04 * w
+    }
+
+    pos.setXYZ(i, x, y, z)
+  }
+  pos.needsUpdate = true
+  entry.mesh.geometry.computeBoundingSphere()
 }
 
 export function FemaleBody() {
   const { scene } = useGLTF(MODEL_URL)
   const root = useMemo(() => scene.clone(true), [scene])
   const groupRef = useRef<THREE.Group>(null)
+  const hairRef = useRef<THREE.Group | null>(null)
   const entriesRef = useRef<MeshEntry[]>([])
   const tmp = useRef(new THREE.Vector3())
   const explodeAmt = useRef(0)
+  const hairBaseScale = useRef(new THREE.Vector3(1, 1, 1))
+  const softMorphKey = useRef('')
 
   const {
     selectedId,
     hoveredId,
     visibleSystems,
-    explode,
+    explodeAmount,
     isolate,
     morphs,
     select,
@@ -91,6 +187,8 @@ export function FemaleBody() {
     const names: string[] = []
     const worldBox = new THREE.Box3()
     const centers: THREE.Vector3[] = []
+    const headBox = new THREE.Box3()
+    let headHits = 0
 
     root.updateMatrixWorld(true)
 
@@ -121,16 +219,51 @@ export function FemaleBody() {
       centers.push(worldCenter)
       names.push(id)
 
-      entries.push({
+      if (/Allen_|brain|skull|cranium|eye|eyelid|cornea|lens|iris/i.test(id)) {
+        headBox.expandByObject(mesh)
+        headHits++
+      }
+
+      const group = morphGroupForName(id)
+      const entry: MeshEntry = {
         mesh,
         id,
         system,
         basePosition: mesh.position.clone(),
         baseScale: mesh.scale.clone(),
         explodeDir: new THREE.Vector3(),
-        group: morphGroupForName(id),
+        group,
         materials: enhanced,
-      })
+      }
+
+      if (group === 'skin' || id === 'VH_F_skin') {
+        const geo = mesh.geometry
+        const attr = geo.getAttribute('position') as THREE.BufferAttribute
+        entry.skinBase = new Float32Array(attr.array as ArrayLike<number>)
+        let minY = Infinity
+        let maxY = -Infinity
+        let sx = 0
+        let sy = 0
+        let sz = 0
+        for (let i = 0; i < attr.count; i++) {
+          const y = attr.getY(i)
+          minY = Math.min(minY, y)
+          maxY = Math.max(maxY, y)
+          sx += attr.getX(i)
+          sy += y
+          sz += attr.getZ(i)
+        }
+        entry.skinBox = {
+          minY,
+          maxY,
+          cy: sy / attr.count,
+          cx: sx / attr.count,
+          cz: sz / attr.count,
+        }
+        entry.group = 'skin'
+      }
+
+      entries.push(entry)
     })
 
     const bodyCenter = new THREE.Vector3()
@@ -140,17 +273,61 @@ export function FemaleBody() {
       const dir = centers[i].clone().sub(bodyCenter)
       if (dir.lengthSq() < 1e-10) dir.set(0, 1, 0)
       dir.normalize()
-      // convert world offset direction into parent-local delta approx via base position offset
-      entry.explodeDir.copy(dir).multiplyScalar(0.22)
+      entry.explodeDir.copy(dir).multiplyScalar(EXPLODE_MAX)
+    })
+
+    // Procedural hair aligned to head / upper skin
+    const headCenter = new THREE.Vector3()
+    const headSize = new THREE.Vector3()
+    if (headHits > 0 && !headBox.isEmpty()) {
+      headBox.getCenter(headCenter)
+      headBox.getSize(headSize)
+    } else {
+      headCenter.set(bodyCenter.x, worldBox.max.y - 0.08, bodyCenter.z)
+      headSize.set(0.14, 0.15, 0.18)
+    }
+
+    // Remove prior hair if effect re-runs
+    const existing = root.getObjectByName('atlas_hair')
+    if (existing) root.remove(existing)
+
+    const hair = buildProceduralHair(headCenter, headSize)
+    root.add(hair)
+    hairRef.current = hair
+    hairBaseScale.current.copy(hair.scale)
+
+    hair.traverse((obj) => {
+      const mesh = obj as THREE.Mesh
+      if (!mesh.isMesh) return
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+      names.push(mesh.name)
+      entries.push({
+        mesh,
+        id: mesh.name,
+        system: 'integumentary',
+        basePosition: mesh.position.clone(),
+        baseScale: mesh.scale.clone(),
+        explodeDir: headCenter.clone().sub(bodyCenter).normalize().multiplyScalar(EXPLODE_MAX),
+        group: 'hair',
+        materials: mats,
+      })
+      mesh.userData.atlasId = mesh.name
     })
 
     entriesRef.current = entries
-    setAvailableMorphs(detectAvailableMorphs(names))
+    const flags = detectAvailableMorphs(names)
+    // Procedural hair + skin soft morphs always available
+    flags.hair = true
+    flags.skin = true
+    flags.butt = true
+    flags.arm = true
+    flags.chest = true
+    setAvailableMorphs(flags)
   }, [root, setAvailableMorphs])
 
   useFrame((_, dt) => {
     const k = 1 - Math.exp(-10 * dt)
-    explodeAmt.current += ((explode ? 1 : 0) - explodeAmt.current) * k
+    explodeAmt.current += (explodeAmount - explodeAmt.current) * k
 
     if (groupRef.current) {
       const h = morphs.height
@@ -158,26 +335,59 @@ export function FemaleBody() {
     }
 
     const hairHex = hairColorFromMorph(morphs.hairColor)
+    const skinHex = skinColorFromMorph(morphs.skinTone)
+    const skinOp = morphs.skinOpacity
+
+    const softKey = [
+      morphs.chestSize,
+      morphs.buttSize,
+      morphs.shoulderWidth,
+      morphs.armLength,
+    ].join('|')
+    if (softKey !== softMorphKey.current) {
+      softMorphKey.current = softKey
+      for (const entry of entriesRef.current) {
+        if (entry.group === 'skin' || entry.id === 'VH_F_skin') {
+          applySkinSoftMorph(entry, morphs)
+        }
+      }
+    }
+
+    // Hair group length/volume
+    if (hairRef.current) {
+      const len = 0.55 + morphs.hairLength * 0.95
+      const vol = 0.78 + morphs.hairLength * 0.4
+      hairRef.current.scale.set(
+        hairBaseScale.current.x * vol,
+        hairBaseScale.current.y * len,
+        hairBaseScale.current.z * vol,
+      )
+      // Keep hair with integumentary visibility
+      hairRef.current.visible = Boolean(visibleSystems.integumentary)
+    }
 
     for (const entry of entriesRef.current) {
       const mesh = entry.mesh
+      const isHair = entry.group === 'hair'
+      const isSkin = entry.group === 'skin' || entry.id === 'VH_F_skin'
       const visible = visibleSystems[entry.system]
       const isSel = selectedId === entry.id
       const faded = Boolean(isolate && selectedId && !isSel)
       mesh.visible = Boolean(visible) && !faded
 
-      // Explode: offset local position along precomputed direction
       const target = tmp.current
         .copy(entry.basePosition)
         .addScaledVector(entry.explodeDir, explodeAmt.current)
       mesh.position.lerp(target, k)
 
-      const [mx, my, mz] = morphScaleForGroup(entry.group, morphs)
-      mesh.scale.set(
-        entry.baseScale.x * mx,
-        entry.baseScale.y * my,
-        entry.baseScale.z * mz,
-      )
+      if (!isHair) {
+        const [mx, my, mz] = morphScaleForGroup(entry.group, morphs)
+        mesh.scale.set(
+          entry.baseScale.x * mx,
+          entry.baseScale.y * my,
+          entry.baseScale.z * mz,
+        )
+      }
 
       for (const mat of entry.materials) {
         if (
@@ -187,9 +397,20 @@ export function FemaleBody() {
           const highlight = isSel || hoveredId === entry.id
           mat.emissive.set(highlight ? '#d4a574' : '#000000')
           mat.emissiveIntensity = isSel ? 0.5 : hoveredId === entry.id ? 0.25 : 0
-          if (entry.group === 'hair') {
+
+          if (isHair) {
             mat.color.set(hairHex)
             mat.vertexColors = false
+          }
+          if (isSkin) {
+            mat.color.set(skinHex)
+            mat.vertexColors = false
+            mat.transparent = skinOp < 0.999
+            mat.opacity = skinOp
+            mat.depthWrite = skinOp > 0.85
+            if (mat instanceof THREE.MeshPhysicalMaterial) {
+              mat.transmission = skinOp < 0.55 ? (1 - skinOp) * 0.25 : 0
+            }
           }
         }
       }
