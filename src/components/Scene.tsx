@@ -4,10 +4,13 @@ import {
   Center,
   ContactShadows,
   Environment,
+  Html,
   OrbitControls,
   useBounds,
+  useProgress,
 } from '@react-three/drei'
 import { Suspense, useEffect, useRef, useState } from 'react'
+import * as THREE from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { useAtlas } from '../state/AtlasProvider'
 import { FemaleBody } from './FemaleBody'
@@ -15,18 +18,23 @@ import { FemaleBody } from './FemaleBody'
 function Lights() {
   return (
     <>
-      <ambientLight intensity={0.32} color="#f2e8de" />
+      <ambientLight intensity={0.28} color="#f5ebe0" />
+      <hemisphereLight args={['#eef2f8', '#1c1410', 0.45]} />
+      {/* Key */}
       <directionalLight
-        position={[4, 8, 5]}
-        intensity={1.45}
-        color="#fff4e8"
+        position={[3.8, 7.5, 4.5]}
+        intensity={1.55}
+        color="#fff6ea"
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
+        shadow-bias={-0.00015}
       />
-      <directionalLight position={[-5, 3, -3]} intensity={0.45} color="#9bb0d8" />
-      <directionalLight position={[0, 2, -6]} intensity={0.3} color="#ffe0c0" />
-      <hemisphereLight args={['#e8eef8', '#1a1210', 0.4]} />
+      {/* Fill */}
+      <directionalLight position={[-4.5, 2.8, -2.5]} intensity={0.55} color="#a8b8d8" />
+      {/* Rim */}
+      <directionalLight position={[0.5, 3.2, -5.5]} intensity={0.42} color="#ffd8b8" />
+      <pointLight position={[0, 1.2, 2.2]} intensity={0.22} color="#ffe8d4" distance={6} />
     </>
   )
 }
@@ -69,6 +77,37 @@ function HoverLabel() {
   return <div className="hover-label">{label}</div>
 }
 
+function LoadingFallback() {
+  const { progress } = useProgress()
+  return (
+    <Html center>
+      <div className="scene-loading" role="status" aria-live="polite">
+        <div className="scene-loading-spinner" />
+        <div className="scene-loading-text">
+          Loading atlas… {Math.min(100, Math.round(progress))}%
+        </div>
+        <div className="scene-loading-track">
+          <div
+            className="scene-loading-bar"
+            style={{ width: `${Math.min(100, progress)}%` }}
+          />
+        </div>
+      </div>
+    </Html>
+  )
+}
+
+function DomLoadingHint() {
+  const { active, progress } = useProgress()
+  if (!active && progress >= 100) return null
+  if (!active && progress === 0) return null
+  return (
+    <div className="scene-loading-dom" role="status" aria-live="polite">
+      Loading atlas… {Math.min(100, Math.round(progress))}%
+    </div>
+  )
+}
+
 export function Scene() {
   const { select, wasTap, markPointerDown, markPointerMove, selectedId } = useAtlas()
   const controlsRef = useRef<OrbitControlsImpl | null>(null)
@@ -86,19 +125,31 @@ export function Scene() {
       onPointerMove={(e) => markPointerMove(e.clientX, e.clientY)}
     >
       <Canvas
-        camera={{ position: [0.9, 0.35, 1.6], fov: 40, near: 0.01, far: 50 }}
-        dpr={[1, 1.75]}
+        camera={{ position: [0.9, 0.35, 1.6], fov: 40, near: 0.01, far: 80 }}
+        dpr={[1, 2]}
         shadows
-        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+        gl={{
+          antialias: true,
+          alpha: true,
+          powerPreference: 'high-performance',
+          toneMapping: THREE.ACESFilmicToneMapping,
+          outputColorSpace: THREE.SRGBColorSpace,
+        }}
+        onCreated={({ gl }) => {
+          gl.toneMapping = THREE.ACESFilmicToneMapping
+          gl.toneMappingExposure = 1.12
+          gl.outputColorSpace = THREE.SRGBColorSpace
+        }}
         onPointerMissed={() => {
           if (wasTap()) select(null)
         }}
       >
         <color attach="background" args={['#0a090c']} />
-        <fog attach="fog" args={['#0a090c', 4, 12]} />
-        <Suspense fallback={null}>
+        {/* Soft vertical void — less aggressive so the figure doesn’t melt into fog */}
+        <fog attach="fog" args={['#0a090c', 7, 22]} />
+        <Suspense fallback={<LoadingFallback />}>
           <Lights />
-          <Environment preset="city" environmentIntensity={0.42} />
+          <Environment preset="apartment" environmentIntensity={0.48} />
           <Bounds fit clip observe margin={1.15}>
             <Center>
               <FemaleBody />
@@ -106,15 +157,18 @@ export function Scene() {
             <FitBounds trigger={fitTrigger} />
           </Bounds>
           <ContactShadows
-            position={[0, -0.85, 0]}
-            opacity={0.5}
-            scale={3}
-            blur={2.6}
-            far={2}
+            position={[0, -0.88, 0]}
+            opacity={0.42}
+            scale={3.2}
+            blur={2.8}
+            far={2.4}
+            resolution={512}
+            color="#000000"
           />
         </Suspense>
         <Rig controlsRef={controlsRef} />
       </Canvas>
+      <DomLoadingHint />
       <HoverLabel />
       <div className="view-toolbar">
         <button type="button" className="text-btn view-btn" onClick={resetView}>

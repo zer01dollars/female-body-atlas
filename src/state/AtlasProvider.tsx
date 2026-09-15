@@ -18,14 +18,15 @@ import {
   type PresetId,
 } from '../types'
 
-/** Default: Normal / Complete — full person with skin on. */
-const ALL_VISIBLE = Object.fromEntries(SYSTEMS.map((s) => [s, true])) as Record<
-  AnatomySystem,
-  boolean
->
+/** Default Normal: skin + hair + skeleton/muscles/organs; nervous OFF (Allen brain clutter). */
+const NORMAL_SYSTEMS: AnatomySystem[] = SYSTEMS.filter((s) => s !== 'nervous')
+
+const ALL_VISIBLE = Object.fromEntries(
+  SYSTEMS.map((s) => [s, s !== 'nervous']),
+) as Record<AnatomySystem, boolean>
 
 const PRESET_SYSTEMS: Record<PresetId, AnatomySystem[]> = {
-  normal: [...SYSTEMS],
+  normal: NORMAL_SYSTEMS,
   all: SYSTEMS.filter((s) => s !== 'integumentary'),
   skeleton: ['skeletal'],
   organs: [

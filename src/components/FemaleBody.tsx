@@ -51,20 +51,21 @@ function makeSkinMaterial(base?: THREE.Material): THREE.MeshPhysicalMaterial {
       base instanceof THREE.MeshPhysicalMaterial)
       ? base.color.clone()
       : new THREE.Color('#d4a574')
+  // Opaque by default — transparent:true at opacity 1 breaks depth among hundreds of meshes.
   return new THREE.MeshPhysicalMaterial({
     color,
-    roughness: 0.48,
+    roughness: 0.5,
     metalness: 0.0,
-    clearcoat: 0.12,
-    clearcoatRoughness: 0.55,
-    sheen: 0.35,
-    sheenRoughness: 0.6,
-    sheenColor: new THREE.Color('#f0d0b8'),
+    clearcoat: 0.1,
+    clearcoatRoughness: 0.5,
+    sheen: 0.4,
+    sheenRoughness: 0.55,
+    sheenColor: new THREE.Color('#f2c4a8'),
     transmission: 0,
-    thickness: 0.35,
-    envMapIntensity: 0.85,
-    side: THREE.FrontSide,
-    transparent: true,
+    thickness: 0.4,
+    envMapIntensity: 0.95,
+    side: THREE.DoubleSide,
+    transparent: false,
     opacity: 1,
     depthWrite: true,
   })
@@ -75,53 +76,73 @@ function enhanceMaterial(mat: THREE.Material, system: AnatomySystem): THREE.Mate
     return makeSkinMaterial(mat)
   }
   const colorHint = new THREE.Color(SYSTEM_META[system].color)
+  const softTissue = system !== 'skeletal'
   if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshPhysicalMaterial) {
     const next = mat.clone()
-    next.roughness = Math.min(0.92, (next.roughness ?? 0.55) * 0.9 + 0.25)
-    next.metalness = Math.min(0.12, next.metalness ?? 0)
+    next.roughness = softTissue
+      ? Math.min(0.78, Math.max(0.35, (next.roughness ?? 0.55) * 0.85 + 0.12))
+      : Math.min(0.88, (next.roughness ?? 0.55) * 0.9 + 0.2)
+    // Soft tissue should not look metallic/muddy.
+    next.metalness = softTissue ? 0 : Math.min(0.08, next.metalness ?? 0)
     if (!next.vertexColors && !next.map) {
-      next.color = next.color.clone().lerp(colorHint, 0.3)
+      next.color = next.color.clone().lerp(colorHint, softTissue ? 0.48 : 0.28)
     }
-    next.envMapIntensity = 0.6
+    next.envMapIntensity = softTissue ? 0.55 : 0.7
     next.side = THREE.DoubleSide
     return next
   }
   return new THREE.MeshPhysicalMaterial({
     color: colorHint,
-    roughness: 0.62,
-    metalness: 0.04,
+    roughness: softTissue ? 0.55 : 0.62,
+    metalness: softTissue ? 0 : 0.04,
     side: THREE.DoubleSide,
   })
 }
 
-/** Convert quantized (e.g. Int16 normalized) positions to Float32 so morphs write real-world coords. */
+/** Dequantize a BufferAttribute (e.g. Int16 normalized) to Float32 via getX/Y/Z. */
+function dequantizeAttribute(
+  attr: THREE.BufferAttribute,
+  itemSize: number,
+): THREE.BufferAttribute {
+  if (attr.array instanceof Float32Array && !attr.normalized) return attr
+  const count = attr.count
+  const floats = new Float32Array(count * itemSize)
+  for (let i = 0; i < count; i++) {
+    floats[i * itemSize] = attr.getX(i)
+    if (itemSize > 1) floats[i * itemSize + 1] = attr.getY(i)
+    if (itemSize > 2) floats[i * itemSize + 2] = attr.getZ(i)
+    if (itemSize > 3) floats[i * itemSize + 3] = attr.getW(i)
+  }
+  return new THREE.BufferAttribute(floats, itemSize)
+}
+
+/**
+ * Convert quantized positions to Float32 for soft morphs.
+ * Preserve / dequantize original normals — computeVertexNormals() after toNonIndexed()
+ * can flip winding and FrontSide-cull the exterior.
+ */
 function ensureFloatSkinGeometry(mesh: THREE.Mesh): THREE.BufferAttribute {
   let geo = mesh.geometry
   // Clone + de-index so we never mutate shared GLTF buffers incorrectly.
   geo = geo.index ? geo.clone().toNonIndexed() : geo.clone()
   mesh.geometry = geo
 
-  const attr = geo.getAttribute('position') as THREE.BufferAttribute
-  if (attr.array instanceof Float32Array && !attr.normalized) {
+  const posAttr = geo.getAttribute('position') as THREE.BufferAttribute
+  const floatPos = dequantizeAttribute(posAttr, 3)
+  if (floatPos !== posAttr) geo.setAttribute('position', floatPos)
+
+  const normalAttr = geo.getAttribute('normal') as THREE.BufferAttribute | undefined
+  if (normalAttr) {
+    const floatNorm = dequantizeAttribute(normalAttr, normalAttr.itemSize)
+    if (floatNorm !== normalAttr) geo.setAttribute('normal', floatNorm)
+  } else {
     geo.computeVertexNormals()
-    geo.computeBoundingSphere()
-    geo.computeBoundingBox()
-    return attr
   }
 
-  const count = attr.count
-  const floats = new Float32Array(count * 3)
-  for (let i = 0; i < count; i++) {
-    floats[i * 3] = attr.getX(i)
-    floats[i * 3 + 1] = attr.getY(i)
-    floats[i * 3 + 2] = attr.getZ(i)
-  }
-  const floatAttr = new THREE.BufferAttribute(floats, 3)
-  geo.setAttribute('position', floatAttr)
-  geo.computeVertexNormals()
   geo.computeBoundingSphere()
   geo.computeBoundingBox()
-  return floatAttr
+  mesh.frustumCulled = true
+  return geo.getAttribute('position') as THREE.BufferAttribute
 }
 
 /** Soft region morphs on the body skin shell (chest / glute / shoulder / arm). */
@@ -455,9 +476,11 @@ export function FemaleBody() {
           if (isSkin) {
             mat.color.set(skinHex)
             mat.vertexColors = false
-            mat.transparent = skinOp < 0.999
-            mat.opacity = skinOp
-            mat.depthWrite = skinOp > 0.85
+            // Only transparent when meaningfully translucent — avoids depth-sort disappearance.
+            const translucent = skinOp < 0.98
+            mat.transparent = translucent
+            mat.opacity = translucent ? skinOp : 1
+            mat.depthWrite = !translucent || skinOp > 0.85
             if (mat instanceof THREE.MeshPhysicalMaterial) {
               mat.transmission = skinOp < 0.55 ? (1 - skinOp) * 0.25 : 0
             }
