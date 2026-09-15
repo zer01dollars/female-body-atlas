@@ -94,6 +94,36 @@ function enhanceMaterial(mat: THREE.Material, system: AnatomySystem): THREE.Mate
   })
 }
 
+/** Convert quantized (e.g. Int16 normalized) positions to Float32 so morphs write real-world coords. */
+function ensureFloatSkinGeometry(mesh: THREE.Mesh): THREE.BufferAttribute {
+  let geo = mesh.geometry
+  // Clone + de-index so we never mutate shared GLTF buffers incorrectly.
+  geo = geo.index ? geo.clone().toNonIndexed() : geo.clone()
+  mesh.geometry = geo
+
+  const attr = geo.getAttribute('position') as THREE.BufferAttribute
+  if (attr.array instanceof Float32Array && !attr.normalized) {
+    geo.computeVertexNormals()
+    geo.computeBoundingSphere()
+    geo.computeBoundingBox()
+    return attr
+  }
+
+  const count = attr.count
+  const floats = new Float32Array(count * 3)
+  for (let i = 0; i < count; i++) {
+    floats[i * 3] = attr.getX(i)
+    floats[i * 3 + 1] = attr.getY(i)
+    floats[i * 3 + 2] = attr.getZ(i)
+  }
+  const floatAttr = new THREE.BufferAttribute(floats, 3)
+  geo.setAttribute('position', floatAttr)
+  geo.computeVertexNormals()
+  geo.computeBoundingSphere()
+  geo.computeBoundingBox()
+  return floatAttr
+}
+
 /** Soft region morphs on the body skin shell (chest / glute / shoulder / arm). */
 function applySkinSoftMorph(
   entry: MeshEntry,
@@ -167,7 +197,8 @@ export function FemaleBody() {
   const tmp = useRef(new THREE.Vector3())
   const explodeAmt = useRef(0)
   const hairBaseScale = useRef(new THREE.Vector3(1, 1, 1))
-  const softMorphKey = useRef('')
+  // Skip soft morph until values leave defaults (float conversion is the real cube fix).
+  const softMorphKey = useRef('0.5|0.5|1|1')
 
   const {
     selectedId,
@@ -219,8 +250,21 @@ export function FemaleBody() {
       centers.push(worldCenter)
       names.push(id)
 
-      if (/Allen_|brain|skull|cranium|eye|eyelid|cornea|lens|iris/i.test(id)) {
+      // Prefer skull/cranium or upper VH_F_skin for hair bounds — Allen_ brain meshes skew the box.
+      if (/skull|cranium/i.test(id)) {
         headBox.expandByObject(mesh)
+        headHits++
+      } else if (id === 'VH_F_skin') {
+        const box = new THREE.Box3().setFromObject(mesh)
+        const size = new THREE.Vector3()
+        box.getSize(size)
+        // Keep only the top ~18% of the body skin as a head region proxy.
+        const headMinY = box.max.y - size.y * 0.18
+        const tight = new THREE.Box3(
+          new THREE.Vector3(box.min.x + size.x * 0.28, headMinY, box.min.z + size.z * 0.22),
+          new THREE.Vector3(box.max.x - size.x * 0.28, box.max.y, box.max.z - size.z * 0.15),
+        )
+        headBox.union(tight)
         headHits++
       }
 
@@ -237,21 +281,23 @@ export function FemaleBody() {
       }
 
       if (group === 'skin' || id === 'VH_F_skin') {
-        const geo = mesh.geometry
-        const attr = geo.getAttribute('position') as THREE.BufferAttribute
-        entry.skinBase = new Float32Array(attr.array as ArrayLike<number>)
+        // Dequantize Int16-normalized HuBMAP positions before soft morphs.
+        const attr = ensureFloatSkinGeometry(mesh)
+        entry.skinBase = new Float32Array(attr.array as Float32Array)
         let minY = Infinity
         let maxY = -Infinity
         let sx = 0
         let sy = 0
         let sz = 0
         for (let i = 0; i < attr.count; i++) {
+          const x = attr.getX(i)
           const y = attr.getY(i)
+          const z = attr.getZ(i)
           minY = Math.min(minY, y)
           maxY = Math.max(maxY, y)
-          sx += attr.getX(i)
+          sx += x
           sy += y
-          sz += attr.getZ(i)
+          sz += z
         }
         entry.skinBox = {
           minY,
@@ -282,6 +328,10 @@ export function FemaleBody() {
     if (headHits > 0 && !headBox.isEmpty()) {
       headBox.getCenter(headCenter)
       headBox.getSize(headSize)
+      // Keep procedural hair on a human-scale head (brain meshes used to explode this).
+      headSize.x = Math.min(Math.max(headSize.x, 0.12), 0.28)
+      headSize.y = Math.min(Math.max(headSize.y, 0.12), 0.3)
+      headSize.z = Math.min(Math.max(headSize.z, 0.14), 0.32)
     } else {
       headCenter.set(bodyCenter.x, worldBox.max.y - 0.08, bodyCenter.z)
       headSize.set(0.14, 0.15, 0.18)
